@@ -19,7 +19,7 @@ module.exports = function (mongoose, Schema) {
       type: String,
       default: '',
     },
-    matches: {
+    patterns: {
       type: [String]
     },
     alg_type: {
@@ -36,7 +36,7 @@ module.exports = function (mongoose, Schema) {
     },
     status: {
       type: Number,
-      default: constant.RULE.STATUS.WRITING,
+      default: constant.RULE.STATUS.WAITING,
     },
   }, {
     strict: true,

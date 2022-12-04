@@ -21,7 +21,7 @@ module.exports = {
     STATUS: {
       RUNNING: 1,
       DISCARD: 2,
-      WRITING: 3,
+      WAITING: 3,
     }
   },
   ATTACHMENT: {

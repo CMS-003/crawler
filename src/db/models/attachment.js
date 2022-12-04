@@ -7,6 +7,10 @@ module.exports = function (mongoose, Schema) {
       type: String,
       comment: 'guid'
     },
+    pid: {
+      type: String,
+      default: '',
+    },
     resource_id: {
       type: String,
       default: '',

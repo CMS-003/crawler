@@ -16,8 +16,9 @@ module.exports = (app) => {
       res.success(items);
     },
     'post /rules': async (req, res) => {
-      const data = _.pick(req.body, ['type', 'name', 'desc', 'filepath', 'matches', 'status', '_id']);
-      data._id = uuid.v4();
+      const data = _.pick(req.body, ['type', 'name', 'desc', 'filepath', 'patterns', 'status', '_id']);
+      // 手填唯一标志id
+      // data._id = uuid.v4();
       await models.Rule.create(data);
       res.success({ _id: data._id });
     },
@@ -25,12 +26,12 @@ module.exports = (app) => {
       const url = new URL(req.query.url);
       const { origin, pathname } = url;
       let result;
-      const rules = await models.Rule.getAll({ where: { status: constant.RULE.STATUS.RUNNING, matches: { $elemMatch: { $regex: new RegExp('^' + origin) } } }, lean: true })
+      const rules = await models.Rule.getAll({ where: { status: constant.RULE.STATUS.RUNNING, patterns: { $elemMatch: { $regex: new RegExp('^' + origin) } } }, lean: true })
       for (let j = 0; j < rules.length; j++) {
         const rule = rules[j];
         let matched = false;
-        for (let i = 0; i < rule.matches.length; i++) {
-          const match_url = rule.matches[i];
+        for (let i = 0; i < rule.patterns.length; i++) {
+          const match_url = rule.patterns[i];
           const fn = match(new URL(match_url).pathname || '', { decode: decodeURIComponent });
           const params = fn(pathname);
           console.log(params)
@@ -80,7 +81,7 @@ module.exports = (app) => {
       }
     },
     'put /rules/:id': async (req, res) => {
-      const data = _.pick(req.body, ['type', 'name', 'desc', 'filepath', 'matches', 'status']);
+      const data = _.pick(req.body, ['type', 'name', 'desc', 'filepath', 'patterns', 'status']);
       await models.Rule.updateOne({ _id: req.params.id }, { $set: data });
       res.success();
     },

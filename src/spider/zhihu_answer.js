@@ -18,13 +18,35 @@ function extractHTML(html, attachments) {
     attachments.push({ id, title, url, type: 'image', seq: i + 1 });
     $(elem).replaceWith($(`<attachment data-id="${id}"/>`))
   });
+
+  const videos = $('a.video-box');
+  videos.each((i, a) => {
+    const url = $(a).find('span.url').text().trim();
+    const title = $(a).find('span.title').text().trim();
+    const id = v4();
+    const poster = $(a).attr('data-poster');
+    acctachments.push({
+      id, title, url, type: 'video', seq: i,
+    });
+    if (poster) {
+      acctachments.push({
+        id: v4(),
+        pid: id,
+        title: '',
+        url: poster,
+        type: 'poster',
+        seq: 1
+      })
+    }
+    $(a).replaceWith(`<attachment data-id="${id}"/>`);
+  });
   return $('body').html();
 }
 
 module.exports = async function (rule, url) {
   const { pathname } = new URL(url);
-  for (let i = 0; i < rule.matches.length; i++) {
-    const match_url = rule.matches[i];
+  for (let i = 0; i < rule.patterns.length; i++) {
+    const match_url = rule.patterns[i];
     const fn = match(new URL(match_url).pathname || '', { decode: decodeURIComponent });
     const params = fn(pathname);
     if (params.params) {
@@ -36,9 +58,11 @@ module.exports = async function (rule, url) {
     return;
   }
   const source_id = rule.params.aid;
+  const source_type = 'answer';
+  const resource_id = helper.source2resource_id(source_type, source_id)
   const doc = await models.Record.findOne({ source_id, rule_id: rule._id }).lean();
   if (doc) {
-    throw('数据已存在');
+    throw ('数据已存在');
   }
   console.log(`crawler: ${url}`)
   try {
@@ -61,9 +85,9 @@ module.exports = async function (rule, url) {
       }
     }).json();
     answer.title = question.title;
+    console.log(answer.content)
     const attachments = [];
     const content = extractHTML(answer.content, attachments);
-    const source_type = 'answer';
     if (attachments.length) {
       await models.Attachment.bulkWrite(attachments.map(attachment => ({
         updateOne: {
@@ -72,6 +96,8 @@ module.exports = async function (rule, url) {
           },
           update: {
             $set: {
+              resource_id,
+              resource_type: source_type,
               title: attachment.title,
               url: attachment.url,
               seq: attachment.seq,
@@ -101,7 +127,7 @@ module.exports = async function (rule, url) {
           title: answer.title,
           content: content,
           status: constant.RECORD.STATUS.CREATED,
-          resource_id: helper.source2resource_id(source_type, source_id),
+          resource_id,
           source_type,
           creator: {
             name: answer.author.name,
