@@ -1,43 +1,34 @@
 const constant = require('../../constant')
 const Custom = require('../custom');
 
+// content内或封面用attachment.video、chapter、image分表
 module.exports = function (mongoose, Schema) {
   const schema = new Schema({
     _id: {
       type: String,
       comment: 'guid'
     },
-    pid: {
-      type: String,
-      default: '',
-    },
     resource_id: {
       type: String,
       default: '',
     },
-    // 可能分表
-    resource_type: {
-      type: String,
-    },
     media_type: {
       type: String, // image,video,audio,file
-    },
-    target_type: {
-      type: String, // 图片或视频转码,doc转PDF?
-    },
-    position: {
-      // 多余的应该根据resource_type自动判断 gallery,comics,movie,mv,anime(动画),video(长视频),music,audio,short,files,doc,
-      type: String, // thumbnail,poster,content,
     },
     more: {
       width: Number,
       height: Number,
-      portrait: Boolean,
+      rotate: Number,
       size: Number,
       duration: Number,
     },
     title: {
       type: String,
+      default: '',
+    },
+    cover: {
+      type: String,
+      default: '',
     },
     url: {
       type: String,
@@ -48,11 +39,7 @@ module.exports = function (mongoose, Schema) {
       default: '',
     },
     temppath: {
-      type: String, // 如果是需要转码
-    },
-    seq: {
-      type: Number,
-      default: 1
+      type: String, // 如果是需要转码.m3u8
     },
     createdAt: {
       type: Date,

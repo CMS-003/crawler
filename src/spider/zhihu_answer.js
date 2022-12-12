@@ -15,7 +15,7 @@ function extractHTML(html, attachments) {
     const title = $(figure).find('figcaption').text()
     const url = elem.attr('data-original')
     const id = v4()
-    attachments.push({ id, title, url, type: 'image', seq: i + 1 });
+    attachments.push({ id, title, url, type: 'image' });
     $(elem).replaceWith($(`<attachment data-id="${id}"/>`))
   });
 
@@ -24,21 +24,20 @@ function extractHTML(html, attachments) {
     const url = $(a).find('span.url').text().trim();
     const title = $(a).find('span.title').text().trim();
     const id = v4();
-    const poster = $(a).attr('data-poster');
-    acctachments.push({
-      id, title, url, type: 'video', seq: i,
+    const cover = $(a).attr('data-poster') || '';
+    let cover_id = '';
+    attachments.push({
+      id, title, url, media_type: 'video',
     });
-    if (poster) {
-      acctachments.push({
-        id: v4(),
-        pid: id,
-        title: '',
-        url: poster,
-        type: 'poster',
-        seq: 1
-      })
+    if (cover) {
+      cover_id = v4();
+      attachments.push({
+        id: cover_id,
+        media_type: 'image',
+        url: cover,
+      });
     }
-    $(a).replaceWith(`<attachment data-id="${id}"/>`);
+    $(a).replaceWith(`<attachment data-id="${id}" cover="${cover_id}"/>`);
   });
   return $('body').html();
 }
@@ -59,7 +58,7 @@ module.exports = async function (rule, url) {
   }
   const source_id = rule.params.aid;
   const source_type = 'answer';
-  const resource_id = helper.source2resource_id(source_type, source_id)
+  const resource_id = helper.genResourceId(source_type, source_id)
   const doc = await models.Record.findOne({ source_id, rule_id: rule._id }).lean();
   if (doc) {
     throw ('数据已存在');
@@ -85,7 +84,6 @@ module.exports = async function (rule, url) {
       }
     }).json();
     answer.title = question.title;
-    console.log(answer.content)
     const attachments = [];
     const content = extractHTML(answer.content, attachments);
     if (attachments.length) {
@@ -97,15 +95,11 @@ module.exports = async function (rule, url) {
           update: {
             $set: {
               resource_id,
-              resource_type: source_type,
               title: attachment.title,
               url: attachment.url,
-              seq: attachment.seq,
               media_type: attachment.type,
-              position: 'content',
               filepath: '',
               temppath: '',
-              target_type: '',
               more: {},
               createdAt: Date.now(),
               updatedAt: Date.now(),

@@ -48,7 +48,7 @@ module.exports = (app) => {
       }
       if (result) {
         let code = 0;
-        const record = await models.Record.findOne({ rule_id: result._id, source_id: result.alg_type === 'params' ? params2id(result.params) : crypto.createHash('md5').update(pathname).digest('hex') })
+        const record = await models.Record.findOne({ rule_id: result._id, source_id: result.params.id })
         if (record) {
           switch (record.status) {
             case constant.RECORD.STATUS.CREATED:

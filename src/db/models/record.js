@@ -26,6 +26,9 @@ module.exports = function (mongoose, Schema) {
     title: {
       type: String,
     },
+    cover: {
+      type: String,
+    },
     content: {
       type: String,
       default: '',

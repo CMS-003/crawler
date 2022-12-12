@@ -12,21 +12,27 @@ module.exports = {
     }).join('&');
     return crypto.createHash('md5').update(str).digest('hex');
   },
-  source2resource_id: (rule_id, source_id) => {
+  /**
+   * 生成resource_id
+   * @param {string} rule_id 
+   * @param {string} source_id 
+   * @returns 
+   */
+  genResourceId: (rule_id, source_id) => {
     return sparkmd5.hash(`${rule_id}-${source_id}`);
   },
-  parseURL2params: (rule, url) => {
+  getUrlParamsByRule: (rule, url) => {
     const { pathname } = new URL(url);
-    let params = null;
+    let param = null;
     for (let i = 0; i < rule.patterns.length; i++) {
       const match_url = rule.patterns[i];
       const fn = match(new URL(match_url).pathname || '', { decode: decodeURIComponent });
       const params = fn(pathname);
       if (params.params) {
-        params = params.params;
+        param = params.params;
         break;
       }
     }
-    return params;
+    return param;
   },
 }

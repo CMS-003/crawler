@@ -1,86 +1,153 @@
-const BiliHelper = require('../../plugins/biliOperation');
-const utils = require('../../utils');
-const url = require('url')
 
-module.exports = async function ({ app, config: ruleConfig, params, preview = false }) {
-  const { resourceBLL, taskBLL, mediaVideoBLL } = app.get('mongoBLL');
-  const m = /\/video\/([a-zA-Z0-9-_]+)$/.exec(url.parse(params.origin).pathname)
-  const avbv = m ? m[1] : '';
-  const id = utils.md5(params.origin);
-  // https://www.bilibili.com/video/BV1Wv41177cW
-  if (ruleConfig && avbv) {
-    const item = await resourceBLL.getInfo({ where: { source_id: avbv, } })
-    if (item) {
-      throw ('数据已存在')
+const helper = require('../utils/spider.helper');
+const models = require('../db/index');
+const constant = require('../constant');
+const { v4 } = require('uuid');
+const got = require('got').default;
+const table = [...'fZodR9XQDSUm21yCkr6zBqiveYah8bt4xsWpHnJE7jL5VG3guMTKNPAwcF'];
+const s = [11, 10, 3, 8, 4, 6];
+const xor = 177451812;
+const add = 8728348608;
+
+const BILIBILI = {
+  av2bv: (av) => {
+    let num = NaN;
+    if (Object.prototype.toString.call(av) === '[object Number]') {
+      num = av;
+    } else if (Object.prototype.toString.call(av) === '[object String]') {
+      num = parseInt(av.replace(/[^0-9]/gu, ''));
+    };
+    if (isNaN(num) || num <= 0) {
+      // 网页版直接输出这个结果了
+      return '';
+    };
+
+    num = (num ^ xor) + add;
+    let result = [...'BV1  4 1 7  '];
+    let i = 0;
+    while (i < 6) {
+      // 这里改写差点犯了运算符优先级的坑
+      // 果然 Python 也不是特别熟练
+      // 说起来 ** 按照传统语法应该写成 Math.pow()，但是我个人更喜欢 ** 一些
+      result[s[i]] = table[Math.floor(num / 58 ** i) % 58];
+      i += 1;
+    };
+    return result.join('');
+  },
+  bv2av: (bv) => {
+    let str = '';
+    if (bv.length === 12) {
+      str = bv;
+    } else if (bv.length === 10) {
+      str = `BV${bv}`;
+      // 根据官方 API，BV 号开头的 BV1 其实可以省略
+      // 不过单独省略个 B 又不行（
+    } else if (bv.length === 9) {
+      str = `BV1${bv}`;
+    } else {
+      return '';
+    };
+    if (!str.match(/[Bb][Vv][fZodR9XQDSUm21yCkr6zBqiveYah8bt4xsWpHnJE7jL5VG3guMTKNPAwcF]{10}/gu)) {
+      return '';
+    };
+
+    let result = 0;
+    let i = 0;
+    while (i < 6) {
+      result += table.indexOf(str[s[i]]) * 58 ** i;
+      i += 1;
+    };
+    return `av${result - add ^ xor}`;
+  },
+  // 用于下载单p
+  async getVideoInfo(id) {
+    // 获取视频地址需要bvid
+    if (id.startsWith('av')) {
+      id = this.av2bv(id)
     }
-    const info = await BiliHelper.getVideoInfo(avbv);
-    let poster = info.pic;
-    if (poster && !preview) {
-      const fullsub = await utils.createUrlPath('/images/poster/{YY}-{MM}-{DD}/{HH}{II}{SS}-{6}.{ext}', app.config.STATIC_PATH, poster);
-      const taskId = utils.GUID();
-      await taskBLL.create({ id: taskId, name: `封面：${info.title}`, type: 'image', resource_id: id, origin: poster, params: { dirpath: app.config.STATIC_PATH, subpath: fullsub.subpath } });
-      poster = fullsub.subpath;
-      try {
-        await utils.shttp.download(info.pic, fullsub.fullpath);
-        await taskBLL.update({ where: { id: taskId }, data: { $set: { status: 'finished' } } })
-      } catch (e) {
-        await taskBLL.update({ where: { id: taskId }, data: { $set: { status: 'retry' } } })
-        console.log(e)
+    // const ps = await shttp.get(`https://api.bilibili.com/x/player/pagelist?bvid=${id}`).header('user-agent', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36').end()
+    // let cid = '';
+    // if (ps && ps.code === 0 && ps.data.length !== 0) {
+    //   cid = ps.data[0].cid
+    // }
+    const aid = this.bv2av(id)
+    const detail = await got(`https://api.bilibili.com/x/web-interface/view?aid=${aid.substr(2)}`, {
+      method: 'GET',
+      headers: {
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36'
       }
+    }).json();
+    if (detail.code === 0) {
+      return detail.data
+    } else {
+      throw detail.message
     }
-    const data = {
-      id,
-      title: info.title,
-      uid: 1,
-      uname: '',
-      desc: info.desc,
-      tags: [],
-      source_type: ruleConfig.type,
-      source_id: avbv,
-      source_name: 'bilibili',
-      url: params.origin,
-      open: true,
-      poster,
-      images: [],
-      publishedAt: new Date(info.ctime * 1000),
-      createdAt: new Date(),
-      status: 'finished',
-      original: info,
-    }
-    const arrVideos = [], arrTasks = [];
-    for (let i = 0; i < info.pages.length; i++) {
-      const result = await BiliHelper.getPlayUrl({ id: info.aid, cid: info.pages[i].cid })
-      const result2 = await BiliHelper.getTags({ id: info.aid, cid: info.pages[i].cid })
-      if (result.code === 0) {
-        // arrVideos.push({
-        //   updateOne: {
-        //     filter: { mid: id, id: utils.MUID(i, id), },
-        //     update: { $set: { title: info.pages[i].part || '', more: info.pages[i].dimension, } },
-        //     upsert: true,
-        //   }
-        // });
-        if (i == 0) {
-          data.tags = result2.code === 0 ? result2.data.map(item => item.tag_name) : [];
-        }
-        arrTasks.push({
-          updateOne: {
-            filter: { resource_id: id, id: utils.MUID(i, id) },
-            // TODO: 默认1080p
-            update: { $set: { type: 'video', params: result.data, origin: result.data.durl[0].url, name: info.title } },
-            upsert: true,
-          }
-        });
+  },
+  // 获取单p 下载地址
+  // https://api.bilibili.com/x/player/playurl?avid=66333861&cid=%20115048060&qn=32
+  async getPlayUrl({ id, cid, qn = 80, }) {
+    const result = await got(`https://api.bilibili.com/x/player/playurl?avid=${id}&cid=${cid}&qn=${qn}`).json()
+    return result;
+  },
+  async getTags({ id, cid }) {
+    const result = await got(`https://api.bilibili.com/x/web-interface/view/detail/tag?aid=${id}&cid=${cid}`).json()
+    return result;
+  }
+}
+
+module.exports = async function (rule, url) {
+  const params = helper.getUrlParamsByRule(rule, url);
+  if (params) {
+    const info = await BILIBILI.getVideoInfo(params.id);
+    const source_type = rule.type;
+    const source_id = info.aid;
+    const resource_id = helper.genResourceId(rule._id, source_id)
+    const doc = await models.Record.findOne({ source_id, rule_id: rule._id }).lean();
+    if (!doc) {
+      for (let i = 0; i < info.pages.length; i++) {
+        const result = await BILIBILI.getPlayUrl({ id: info.aid, cid: info.pages[i].cid })
+        const result2 = await BILIBILI.getTags({ id: info.aid, cid: info.pages[i].cid })
+        info.pages[i].detail = result.data;
+        info.pages[i].tags = result2.data;
       }
+      await models.Record.updateOne({
+        rule_id: rule._id,
+        source_id,
+      }, {
+        $set: {
+          params,
+          raw: info,
+          source_type,
+          resource_id,
+          url: `https://www.bilibili.com/video/${params.id}/`,
+          title: info.title,
+          cover: info.pic,
+          content: '',
+          desc: info.desc,
+          status: constant.RECORD.STATUS.CREATED,
+          creator: {
+            name: info.owner.name,
+            icon: info.owner.face,
+          },
+          region_code: 'zh-CN',
+          lang: 'CN',
+          createdAt: new Date(info.ctime * 1000),
+          updatedAt: new Date(info.pubdate * 1000),
+          chapters: info.videos,
+          count: info.duration,
+          available: 0,
+        },
+        $setOnInsert: {
+          _id: v4(),
+          crawledAt: new Date(),
+        },
+      }, {
+        upsert: true,
+        new: true,
+      });
+      // video
+      // cover thumbnail
+      
     }
-    if (preview) {
-      return data;
-    }
-    await resourceBLL.create(data)
-    // await mediaVideoBLL.model.bulkWrite(arrVideos);
-    await taskBLL.model.bulkWrite(arrTasks)
-  } else {
-    app.getLogger2('spider').action(`fetch`).log({
-      url: params.origin, ruleId: ruleConfig.id,
-    });
   }
 }
