@@ -22,6 +22,7 @@
     "mongoose": "^6.7.2",
     "multer": "^1.4.5-lts.1",
     "path-to-regexp": "^6.2.1",
+    "probe-image-size": "^7.2.3",
     "spark-md5": "^3.0.2",
     "xlsx": "^0.18.5"
   }
