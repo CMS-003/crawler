@@ -133,6 +133,7 @@ module.exports = async function (rule, url) {
           lang: 'CN',
           createdAt: new Date(info.ctime * 1000),
           updatedAt: new Date(info.pubdate * 1000),
+          crawledAt: new Date(),
           chapters: info.videos,
           count: info.duration,
           available: 0,

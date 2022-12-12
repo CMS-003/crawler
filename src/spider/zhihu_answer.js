@@ -103,6 +103,7 @@ module.exports = async function (rule, url) {
               more: {},
               createdAt: Date.now(),
               updatedAt: Date.now(),
+              crawledAt: new Date(),
               status: constant.ATTACHMENT.STATUS.CREATED,
             },
             $setOnInsert: { _id: attachment.id },
