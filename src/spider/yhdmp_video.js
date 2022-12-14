@@ -44,35 +44,62 @@ module.exports = async function (rule, url) {
   if (poster.startsWith('//')) {
     poster = 'http:' + poster;
   }
-
+  const videos = [], s = new Set();
+  $('.fire').find('div.tabs a').each((i, a) => {
+    const title = $(a).text().trim();
+    const href = $(a).attr('href');
+    if (!s.has(title)) {
+      s.add(title);
+      videos.push({
+        title,
+        nth: i + 1,
+        v_id: href.replace(/^\/vp\//, '').replace(/\.html$/, ''),
+      })
+    }
+  })
+  if (videos.length) {
+    await models.Video.bulkWrite(videos.map(v => ({
+      updateOne: {
+        filter: { v_id: v.v_id, resource_id },
+        update: {
+          $set: {
+            title: v.title,
+            nth: v.nth,
+            type: title.includes('PV') ? constant.VIDEO.TYPE.TRAILER : constant.VIDEO.TYPE.FEATURE,
+          }
+        },
+        upsert: true
+      }
+    })))
+  }
   await models.Record.updateOne({
     rule_id: rule._id,
     source_id,
   }, {
-      $set: {
-        params,
-        raw: { html: $('div.fire').html(), publishedAt, alias },
-        source_type,
-        source_id,
-        resource_id,
-        url,
-        title,
-        poster,
-        desc,
-        tags,
-        country,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        crawledAt: new Date(),
-        status: constant.RECORD.STATUS.CREATED,
-        update_text,
-        update_status: update_text.includes('完结') ? 2 : 1,
-      },
-      $setOnInsert: {
-        _id: v4(),
-      }
-    }, {
-      upsert: true,
-      new: true,
-    })
+    $set: {
+      params,
+      raw: { html: $('div.fire').html(), publishedAt, alias },
+      source_type,
+      source_id,
+      resource_id,
+      url,
+      title,
+      poster,
+      desc,
+      tags,
+      country,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      crawledAt: new Date(),
+      status: constant.RECORD.STATUS.CREATED,
+      update_text,
+      update_status: update_text.includes('完结') ? 2 : 1,
+    },
+    $setOnInsert: {
+      _id: v4(),
+    }
+  }, {
+    upsert: true,
+    new: true,
+  })
 }

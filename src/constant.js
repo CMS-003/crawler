@@ -32,5 +32,13 @@ module.exports = {
       SUCCESS: 4,
       ERRORED: 5,
     }
+  },
+  VIDEO: {
+    // 正片: feature 预告片: trailer 花絮: tidbits
+    TYPE: {
+      FEATURE: 1,
+      TRAILER: 2,
+      TIDBITS: 3,
+    }
   }
 }
