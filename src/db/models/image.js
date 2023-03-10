@@ -1,27 +1,23 @@
 const constant = require('../../constant')
 const Custom = require('../custom');
 
-// content内或封面用attachment.video、chapter、image分表
 module.exports = function (mongoose, Schema) {
   const schema = new Schema({
     _id: {
       type: String,
-      comment: 'guid'
     },
     resource_id: {
       type: String,
       default: '',
     },
-    media_type: {
-      type: String, // image,video,audio,file
+    segment_id: {
+      type: String,
+      default: '',
+      comment: 'gallery',
     },
-    more: {
-      width: Number,
-      height: Number,
-      rotate: Number,
-      size: Number,
-      duration: Number,
-    },
+    width: Number,
+    height: Number,
+    size: Number,
     title: {
       type: String,
       default: '',
@@ -29,7 +25,6 @@ module.exports = function (mongoose, Schema) {
     thumbnail: {
       type: String,
       default: '',
-      comment: 'audio/video的封面可以通过ffmpeg写到文件里,图片的缩略图',
     },
     url: {
       type: String,
@@ -39,9 +34,6 @@ module.exports = function (mongoose, Schema) {
       type: String,
       default: '',
     },
-    temppath: {
-      type: String, // 如果是需要转码.m3u8
-    },
     createdAt: {
       type: Date,
       default: Date.now
@@ -50,6 +42,10 @@ module.exports = function (mongoose, Schema) {
       type: Date,
       default: Date.now
     },
+    nth: {
+      type: Number,
+      default: 1
+    },
     status: {
       type: Number,
       default: constant.ATTACHMENT.STATUS.CREATED,
@@ -57,8 +53,8 @@ module.exports = function (mongoose, Schema) {
     message: String, // 错误信息
   }, {
     strict: true,
-    collections: 'attachment',
+    collections: 'image',
   });
   schema.loadClass(Custom);
-  return mongoose.model('attachment', schema);
+  return mongoose.model('image', schema);
 };

@@ -31,10 +31,6 @@ module.exports = function (mongoose, Schema) {
       type: String,
       default: '',
     },
-    subtitle: {
-      type: String,
-      default: '',
-    },
     cover: {
       type: String,
       default: '',

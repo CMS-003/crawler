@@ -14,11 +14,12 @@ module.exports = {
     },
     UPDATE_STATUS: {
       UPDATING: 1,
-      FINISHED: 2,
+      FINISHED: 0,
     }
   },
   RULE: {
     STATUS: {
+      CREATED: 0,
       RUNNING: 1,
       DISCARD: 2,
       WAITING: 3,
@@ -34,11 +35,13 @@ module.exports = {
     }
   },
   VIDEO: {
-    // 正片: feature 预告片: trailer 花絮: tidbits
+    // 正片: feature 预告片: trailer 花絮: tidbits 短视频: short 一般短片 video
     TYPE: {
       FEATURE: 1,
       TRAILER: 2,
       TIDBITS: 3,
+      SHORT: 4,
+      VIDEO: 5,
     }
   }
 }

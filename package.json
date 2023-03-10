@@ -5,6 +5,7 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "sophsis",
@@ -24,6 +25,7 @@
     "path-to-regexp": "^6.2.1",
     "probe-image-size": "^7.2.3",
     "spark-md5": "^3.0.2",
+    "vm2": "^3.9.14",
     "xlsx": "^0.18.5"
   }
 }

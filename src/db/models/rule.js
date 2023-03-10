@@ -10,7 +10,9 @@ module.exports = function (mongoose, Schema) {
     type: {
       type: String,
       default: '',
+      comment: 'single,page',
     },
+    resource_type: String,
     name: {
       type: String,
       default: '',
@@ -20,15 +22,12 @@ module.exports = function (mongoose, Schema) {
       default: '',
     },
     patterns: {
-      type: [String]
+      type: [String],
+      comment: 'regpath格式',
     },
-    alg_type: {
-      type: String, // TODO: params,pathname
-    },
-    filepath: {
+    script: {
       type: String,
-      default: '',
-      comment: '处理脚本文件路径'
+      default: '// js business code here',
     },
     createdAt: {
       type: Date,

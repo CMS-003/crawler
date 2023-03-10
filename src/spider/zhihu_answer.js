@@ -1,15 +1,20 @@
 const _ = require('lodash');
 const got = require('got').default;
-const models = require('../db/index')
 const { match } = require("path-to-regexp");
 const { v4 } = require('uuid');
-const helper = require('../utils/spider.helper');
-const constant = require('../constant');
 const cheerio = require('cheerio');
+const URL = require('url').URL;
+const helper = require('../utils/spider.helper');
 
+/**
+ * 1.figure替换为attachment标签,默认背景为抓取中
+ * 2.noscript移除
+ * 3.figcaption转为附件描述
+ */
 function extractHTML(html, attachments) {
   const $ = cheerio.load(html);
   const images = $('figure');
+  $('noscript').remove();
   images.each((i, figure) => {
     const elem = $(figure).find('img');
     const title = $(figure).find('figcaption').text()
@@ -42,7 +47,8 @@ function extractHTML(html, attachments) {
   return $('body').html();
 }
 
-module.exports = async function (rule, url) {
+module.exports = async function (rule, url, preview) {
+  const models = app.models;
   const { pathname } = new URL(url);
   for (let i = 0; i < rule.patterns.length; i++) {
     const match_url = rule.patterns[i];
@@ -85,7 +91,7 @@ module.exports = async function (rule, url) {
     }).json();
     answer.title = question.title;
     const attachments = [];
-    const content = extractHTML(answer.content, attachments);
+    answer.content = extractHTML(answer.content, attachments);
     if (attachments.length) {
       await models.Attachment.bulkWrite(attachments.map(attachment => ({
         updateOne: {
@@ -103,7 +109,6 @@ module.exports = async function (rule, url) {
               more: {},
               createdAt: Date.now(),
               updatedAt: Date.now(),
-              crawledAt: new Date(),
               status: constant.ATTACHMENT.STATUS.CREATED,
             },
             $setOnInsert: { _id: attachment.id },
@@ -117,30 +122,17 @@ module.exports = async function (rule, url) {
       {
         $set: {
           url,
-          params: rule.params,
           raw: answer,
           title: answer.title,
-          content: content,
-          status: constant.RECORD.STATUS.CREATED,
-          resource_id,
-          source_type,
-          creator: {
-            name: answer.author.name,
-            icon: answer.author.avatar_url,
-          },
-          region_code: 'zh-CN',
-          lang: 'CN',
+          resource_type: 'article',
           createdAt: new Date(answer.created_time * 1000),
-          updatedAt: new Date(answer.updated_time * 1000),
-          crawledAt: new Date(),
-          attachments: attachments.map(item => item.id),
-          chapters: 0,
-          count: 0,
-          retry: 0,
-          update_status: constant.RECORD.UPDATE_STATUS.FINISHED,
+          tasks: [],
+          amount: 0,
+          status: constant.RECORD.STATUS.CREATED,
+          updating: constant.RECORD.UPDATE_STATUS.FINISHED,
           available: 0,
         },
-        $setOnInsert: { _id: v4() }
+        $setOnInsert: { _id: resource_id }
       },
       { upsert: true, new: true });
   } catch (e) {

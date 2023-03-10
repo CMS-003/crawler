@@ -1,7 +1,7 @@
 const root_path = process.cwd();
 
 module.exports = {
-  'PORT': '3335',
+  'PORT': '8099',
   // 项目路径
   'ROOT_PATH': root_path,
   'mongo': {

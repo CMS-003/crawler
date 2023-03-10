@@ -33,6 +33,8 @@ app.extend({
   stream: require('./utils/steam'),
   excel: require('./utils/excel'),
   loader: require('./utils/loader'),
+  models: require('./db/index'),
+  constant: require('./constant'),
 })
 app.define = function (key, value) {
   global.CFG[key] = value;

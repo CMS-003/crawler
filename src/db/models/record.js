@@ -5,69 +5,37 @@ module.exports = function (mongoose, Schema) {
   const schema = new Schema({
     _id: {
       type: String,
-      comment: 'guid'
+      comment: 'spark(source_id,source_name)'
     },
-    rule_id: {
+    url: {
       type: String,
-      default: '',
+      comment: '去除不必要参数的有效url', // animate.me 没有
     },
-    resource_id: String,
-    url: String,
-    params: Object, // 配合rule的match生成url。source_id可能是url中的id，也可能是params参数联合创建的
     raw: Object,
     source_id: {
       type: String,
       default: '',
     },
-    source_type: {
+    rule_id: {
       type: String,
       default: '',
+    },
+    // 影视: 电影 电视剧 记录片 综艺
+    resource_type: {
+      // video short music 不在栏目分类里展示,可以在搜索分类
+      type: ['novel', 'article', 'gallery', 'movie', 'series', 'video', 'music'],
+      comment: 'novel: 短篇',
+    },
+    types: {
+      type: [String],
+      comment: 'article: novel/ticker series: documentary/variat video: short movie,series: animation all: R18 private '
     },
     title: {
       type: String,
     },
-    cover: {
-      type: String,
-    },
-    content: {
-      type: String,
-      default: '',
-    },
-    desc: {
-      type: String,
-      default: '',
-    },
-    tags: [String],
-    creator: { name: String, icon: String }, // id name icon
-    people: [{
-      _id: false,
-      role: String,
-      user: [{ _id: false, name: String, icon: String, id: String }]
-    }],
-    region_code: {
-      type: String,
-      default: 'zh-CN',
-    },
-    lang: {
-      type: String,
-      default: 'CN',
-    },
-    series_id: {
-      type: String,
-      default: '',
-    },
-    attachments: [String],
-    createdAt: {
-      type: Date,
-      default: Date.now
-    },
-    chapters: { type: Number, default: 0 },
-    count: { type: Number, default: 0 },
-    updatedAt: {
-      type: Date,
-      default: Date.now
-    },
-    crawledAt: {
+    // class publish() craw() check()
+    tasks: [{ _id: false, task: String, status: Number }], // attachment image cover detail extra transcode
+    created_at: {
       type: Date,
       default: Date.now
     },
@@ -75,22 +43,15 @@ module.exports = function (mongoose, Schema) {
       type: Number,
       default: constant.RECORD.STATUS.CREATED,
     },
-    update_status: {
+    updating: {
       type: Number,
-      default: 1, // 1 连载中 2 已完结
+      default: 0, // 1 连载中 0 已完结
     },
-    update_text: {
-      type: String,
-      default: '', // 更新信息
-    },
+    amount: Number, // chapters size
     available: {
       type: Number, // 0 下线 1 上线
       default: 0,
     },
-    retry: {
-      type: Number,
-      default: 0,
-    }
   }, {
     strict: true,
     collections: 'record',
